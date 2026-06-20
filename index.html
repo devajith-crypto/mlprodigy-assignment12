@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ObeseIQ — Obesity Risk Predictor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0d14;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: rgba(255,255,255,0.07);
+    --accent: #6366f1;
+    --accent2: #a78bfa;
+    --text: #f1f5f9;
+    --muted: #64748b;
+    --danger: #ef4444;
+    --success: #22c55e;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Animated background ── */
+  .bg-orbs {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  .orb {
+    position: absolute; border-radius: 50%;
+    filter: blur(80px); opacity: 0.18;
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+  .orb-1 { width:500px; height:500px; background:#6366f1; top:-120px; left:-80px; animation-delay:0s; }
+  .orb-2 { width:400px; height:400px; background:#8b5cf6; bottom:-100px; right:-60px; animation-delay:-6s; }
+  .orb-3 { width:300px; height:300px; background:#06b6d4; top:40%; left:60%; animation-delay:-12s; }
+
+  @keyframes drift {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(40px, 30px) scale(1.08); }
+  }
+
+  /* ── Layout ── */
+  .wrapper {
+    position: relative; z-index: 1;
+    max-width: 860px; margin: 0 auto; padding: 40px 20px 80px;
+  }
+
+  /* ── Header ── */
+  header {
+    text-align: center; margin-bottom: 48px;
+    animation: fadeDown .7s ease both;
+  }
+  .logo-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.35);
+    padding: 6px 16px; border-radius: 50px; font-size: 12px;
+    color: var(--accent2); letter-spacing: .08em; text-transform: uppercase;
+    font-weight: 600; margin-bottom: 20px;
+  }
+  .logo-pill span { font-size: 16px; }
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700; line-height: 1.15;
+    background: linear-gradient(135deg, #e2e8f0 0%, var(--accent2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle {
+    margin-top: 12px; color: var(--muted); font-size: 15px; max-width: 480px; margin-inline: auto;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 36px 40px;
+    animation: fadeUp .6s ease both;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 24px 60px rgba(0,0,0,0.4);
+  }
+
+  /* ── Section header ── */
+  .section-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .12em;
+    color: var(--accent2); font-weight: 600; margin-bottom: 18px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── Grid ── */
+  .grid { display: grid; gap: 16px; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  @media(max-width:600px) { .grid-2,.grid-3 { grid-template-columns: 1fr; } }
+
+  /* ── Field ── */
+  .field { display: flex; flex-direction: column; gap: 7px; }
+  label { font-size: 12px; font-weight: 500; color: #94a3b8; letter-spacing:.03em; }
+  input, select {
+    background: var(--surface2);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 10px; padding: 11px 14px;
+    color: var(--text); font-size: 14px; font-family: 'Inter', sans-serif;
+    outline: none; transition: border-color .2s, box-shadow .2s;
+    appearance: none; -webkit-appearance: none;
+  }
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.18);
+  }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    padding-right: 36px;
+  }
+  input::placeholder { color: var(--muted); }
+
+  /* ── Divider ── */
+  .divider { margin: 28px 0; border: none; border-top: 1px solid var(--border); }
+
+  /* ── Submit ── */
+  .btn-predict {
+    width: 100%; padding: 15px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 600; font-family: 'Space Grotesk', sans-serif;
+    cursor: pointer; letter-spacing: .04em;
+    transition: opacity .2s, transform .15s, box-shadow .2s;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+    position: relative; overflow: hidden;
+  }
+  .btn-predict:hover { opacity: .92; transform: translateY(-1px); box-shadow: 0 8px 28px rgba(99,102,241,0.45); }
+  .btn-predict:active { transform: translateY(0); }
+  .btn-predict:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+
+  /* loading shimmer on button */
+  .btn-predict .shimmer {
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+    transform: translateX(-100%);
+    animation: shimmer 1.2s infinite;
+  }
+  @keyframes shimmer { to { transform: translateX(100%); } }
+
+  /* ── Loader ── */
+  #loader {
+    display: none; flex-direction: column; align-items: center; gap: 14px;
+    padding: 40px 0;
+  }
+  .spinner {
+    width: 44px; height: 44px;
+    border: 3px solid rgba(99,102,241,0.15);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loader p { color: var(--muted); font-size: 14px; }
+
+  /* ── Result panel ── */
+  #result {
+    display: none; margin-top: 28px;
+    animation: fadeUp .5s ease both;
+  }
+
+  .result-hero {
+    border-radius: 16px; padding: 28px 28px 24px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex; flex-direction: column; gap: 6px;
+    position: relative; overflow: hidden;
+  }
+  .result-hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 80% 50%, var(--result-color, #6366f1) 0%, transparent 60%);
+    opacity: .12; pointer-events: none;
+  }
+  .result-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing:.1em; color: var(--muted); font-weight:600; }
+  .result-level {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    font-weight: 700;
+    color: var(--result-color, #a78bfa);
+    line-height: 1.1;
+  }
+  .result-risk {
+    display: inline-flex; align-items: center;
+    padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight:600;
+    background: rgba(255,255,255,0.07); width: fit-content; margin-top: 4px;
+    color: var(--result-color, #a78bfa);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .result-advice {
+    margin-top: 14px; padding: 14px 16px;
+    background: rgba(255,255,255,0.04); border-radius: 10px;
+    font-size: 13.5px; color: #94a3b8; line-height: 1.6;
+    border-left: 3px solid var(--result-color, #6366f1);
+  }
+
+  /* ── Stats row ── */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px;
+  }
+  @media(max-width:500px) { .stats-row { grid-template-columns: 1fr 1fr; } }
+  .stat-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 14px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .stat-box .val {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px; font-weight: 700; color: var(--text);
+  }
+  .stat-box .val span { font-size: 13px; font-weight: 500; color: var(--muted); }
+  .stat-box .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing:.07em; font-weight:500; }
+
+  /* ── Confidence bar ── */
+  .conf-bar-wrap { margin-top: 16px; }
+  .conf-bar-wrap label { font-size: 12px; color: var(--muted); font-weight:500; display:flex; justify-content:space-between; }
+  .conf-bar-bg {
+    margin-top: 8px; height: 8px; border-radius: 50px;
+    background: rgba(255,255,255,0.07); overflow: hidden;
+  }
+  .conf-bar-fill {
+    height: 100%; border-radius: 50px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    width: 0%; transition: width 1s cubic-bezier(.4,0,.2,1) .3s;
+  }
+
+  /* ── Prob chart ── */
+  .prob-section { margin-top: 20px; }
+  .prob-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .prob-name { font-size: 12px; color: var(--muted); min-width: 170px; }
+  .prob-bar-bg {
+    flex: 1; height: 6px; border-radius: 50px;
+    background: rgba(255,255,255,0.06); overflow: hidden;
+  }
+  .prob-bar-fill {
+    height: 100%; border-radius: 50px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    width: 0%; transition: width 1s cubic-bezier(.4,0,.2,1);
+  }
+  .prob-pct { font-size: 12px; color: var(--muted); min-width: 42px; text-align: right; }
+
+  /* ── Error ── */
+  #error-box {
+    display: none; margin-top: 16px; padding: 14px 16px;
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 10px; font-size: 13.5px; color: #fca5a5;
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeDown {
+    from { opacity:0; transform:translateY(-18px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(18px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* counter animation */
+  .count-up { display: inline-block; }
+</style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<div class="wrapper">
+
+  <header>
+    <div class="logo-pill"><span>🧬</span> AI Health Tool</div>
+    <h1>Obesity Risk Predictor</h1>
+    <p class="subtitle">Enter your health and lifestyle details. Our ANN model will assess your obesity level instantly.</p>
+  </header>
+
+  <div class="card">
+
+    <!-- Personal Info -->
+    <div class="section-label">Personal Information</div>
+    <div class="grid grid-3">
+      <div class="field">
+        <label for="Gender">Gender</label>
+        <select id="Gender">
+          <option value="">Select</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="Age">Age</label>
+        <input type="number" id="Age" placeholder="e.g. 25" min="1" max="120"/>
+      </div>
+      <div class="field">
+        <label for="family_history_with_overweight">Family Overweight History</label>
+        <select id="family_history_with_overweight">
+          <option value="">Select</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+    </div>
+
+    <hr class="divider"/>
+
+    <!-- Body Measurements -->
+    <div class="section-label">Body Measurements</div>
+    <div class="grid grid-2">
+      <div class="field">
+        <label for="Height">Height (meters)</label>
+        <input type="number" id="Height" placeholder="e.g. 1.75" step="0.01" min="0.5" max="2.5"/>
+      </div>
+      <div class="field">
+        <label for="Weight">Weight (kg)</label>
+        <input type="number" id="Weight" placeholder="e.g. 70" step="0.1" min="10" max="300"/>
+      </div>
+    </div>
+
+    <hr class="divider"/>
+
+    <!-- Diet Habits -->
+    <div class="section-label">Diet & Eating Habits</div>
+    <div class="grid grid-3">
+      <div class="field">
+        <label for="FAVC">Frequent High-Cal Food (FAVC)</label>
+        <select id="FAVC">
+          <option value="">Select</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="FCVC">Vegetable Frequency (1–3)</label>
+        <input type="number" id="FCVC" placeholder="1 – 3" min="1" max="3" step="0.1"/>
+      </div>
+      <div class="field">
+        <label for="NCP">Main Meals per Day</label>
+        <input type="number" id="NCP" placeholder="e.g. 3" min="1" max="6" step="0.5"/>
+      </div>
+      <div class="field">
+        <label for="CAEC">Eating Between Meals (CAEC)</label>
+        <select id="CAEC">
+          <option value="">Select</option>
+          <option value="no">No</option>
+          <option value="Sometimes">Sometimes</option>
+          <option value="Frequently">Frequently</option>
+          <option value="Always">Always</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="CH2O">Daily Water (liters, 1–3)</label>
+        <input type="number" id="CH2O" placeholder="1 – 3" min="1" max="3" step="0.1"/>
+      </div>
+      <div class="field">
+        <label for="CALC">Alcohol Consumption (CALC)</label>
+        <select id="CALC">
+          <option value="">Select</option>
+          <option value="no">No</option>
+          <option value="Sometimes">Sometimes</option>
+          <option value="Frequently">Frequently</option>
+          <option value="Always">Always</option>
+        </select>
+      </div>
+    </div>
+
+    <hr class="divider"/>
+
+    <!-- Lifestyle -->
+    <div class="section-label">Lifestyle & Activity</div>
+    <div class="grid grid-3">
+      <div class="field">
+        <label for="SMOKE">Smoker?</label>
+        <select id="SMOKE">
+          <option value="">Select</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="SCC">Monitor Calories (SCC)?</label>
+        <select id="SCC">
+          <option value="">Select</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="FAF">Physical Activity (0–3)</label>
+        <input type="number" id="FAF" placeholder="0 – 3" min="0" max="3" step="0.1"/>
+      </div>
+      <div class="field">
+        <label for="TUE">Tech Usage / day (0–2)</label>
+        <input type="number" id="TUE" placeholder="0 – 2" min="0" max="2" step="0.1"/>
+      </div>
+      <div class="field">
+        <label for="MTRANS">Transportation Mode</label>
+        <select id="MTRANS">
+          <option value="">Select</option>
+          <option value="Automobile">Automobile</option>
+          <option value="Bike">Bike</option>
+          <option value="Motorbike">Motorbike</option>
+          <option value="Public_Transportation">Public Transport</option>
+          <option value="Walking">Walking</option>
+        </select>
+      </div>
+    </div>
+
+    <hr class="divider"/>
+
+    <button class="btn-predict" id="predictBtn" onclick="predict()">
+      Predict Obesity Level
+    </button>
+
+    <div id="error-box"></div>
+
+    <!-- Loader -->
+    <div id="loader">
+      <div class="spinner"></div>
+      <p>Analysing your data…</p>
+    </div>
+
+    <!-- Result -->
+    <div id="result">
+      <div class="result-hero" id="resultHero">
+        <div class="result-eyebrow">Predicted Obesity Level</div>
+        <div class="result-level" id="resultLevel">—</div>
+        <div class="result-risk" id="resultRisk">—</div>
+        <div class="result-advice" id="resultAdvice">—</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="val"><span class="count-up" id="statBMI">—</span></div>
+          <div class="lbl">BMI</div>
+        </div>
+        <div class="stat-box">
+          <div class="val"><span class="count-up" id="statConf">—</span><span>%</span></div>
+          <div class="lbl">Confidence</div>
+        </div>
+        <div class="stat-box">
+          <div class="val" id="statRisk" style="font-size:16px;">—</div>
+          <div class="lbl">Risk Level</div>
+        </div>
+      </div>
+
+      <div class="conf-bar-wrap">
+        <label>
+          <span>Model Confidence</span>
+          <span id="confPct">0%</span>
+        </label>
+        <div class="conf-bar-bg">
+          <div class="conf-bar-fill" id="confBar"></div>
+        </div>
+      </div>
+
+      <div class="prob-section">
+        <div class="section-label" style="margin-top:20px;">Class Probabilities</div>
+        <div id="probBars"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = "/predict";
+
+function getVal(id) {
+  const el = document.getElementById(id);
+  return el.value.trim();
+}
+
+function showError(msg) {
+  const box = document.getElementById("error-box");
+  box.textContent = "⚠ " + msg;
+  box.style.display = "block";
+  setTimeout(() => box.style.display = "none", 6000);
+}
+
+function animateCount(el, target, decimals=1, suffix='') {
+  let start = 0, duration = 900, startTime = null;
+  function step(ts) {
+    if (!startTime) startTime = ts;
+    const p = Math.min((ts - startTime) / duration, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = (start + (target - start) * ease).toFixed(decimals) + suffix;
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+async function predict() {
+  document.getElementById("error-box").style.display = "none";
+  document.getElementById("result").style.display = "none";
+
+  // Collect inputs
+  const fields = ["Gender","Age","Height","Weight","family_history_with_overweight",
+    "FAVC","FCVC","NCP","CAEC","SMOKE","CH2O","SCC","FAF","TUE","CALC","MTRANS"];
+  
+  const payload = {};
+  for (const f of fields) {
+    const v = getVal(f);
+    if (!v) { showError(`Please fill in: ${f.replace(/_/g,' ')}`); return; }
+    payload[f] = v;
+  }
+
+  // Show loader
+  const btn = document.getElementById("predictBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="shimmer"></span>Analysing…';
+  document.getElementById("loader").style.display = "flex";
+
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    document.getElementById("loader").style.display = "none";
+    btn.disabled = false;
+    btn.innerHTML = "Predict Obesity Level";
+
+    if (!data.success) { showError(data.error || "Prediction failed."); return; }
+
+    // ── Render result ──
+    const hero = document.getElementById("resultHero");
+    hero.style.setProperty("--result-color", data.color);
+
+    document.getElementById("resultLevel").style.color = data.color;
+    document.getElementById("resultLevel").textContent = data.label;
+    document.getElementById("resultRisk").textContent = `Risk: ${data.risk_level}`;
+    document.getElementById("resultRisk").style.color = data.color;
+    document.getElementById("resultAdvice").textContent = data.advice;
+    document.getElementById("resultAdvice").style.borderLeftColor = data.color;
+
+    // Stats
+    animateCount(document.getElementById("statBMI"), data.bmi, 1);
+    animateCount(document.getElementById("statConf"), data.confidence, 1);
+    document.getElementById("statRisk").textContent = data.risk_level;
+    document.getElementById("statRisk").style.color = data.color;
+
+    // Confidence bar
+    document.getElementById("confPct").textContent = data.confidence.toFixed(1) + "%";
+    setTimeout(() => {
+      document.getElementById("confBar").style.width = data.confidence + "%";
+    }, 100);
+
+    // Probability bars
+    const probDiv = document.getElementById("probBars");
+    probDiv.innerHTML = "";
+    const sorted = Object.entries(data.probabilities).sort((a,b) => b[1]-a[1]);
+    sorted.forEach(([cls, pct], i) => {
+      const label = cls.replace(/_/g, " ");
+      const row = document.createElement("div");
+      row.className = "prob-row";
+      row.innerHTML = `
+        <div class="prob-name">${label}</div>
+        <div class="prob-bar-bg"><div class="prob-bar-fill" id="pb${i}" style="transition-delay:${i*0.07}s"></div></div>
+        <div class="prob-pct">${pct.toFixed(1)}%</div>
+      `;
+      probDiv.appendChild(row);
+    });
+    // Animate bars after paint
+    requestAnimationFrame(() => {
+      sorted.forEach(([_, pct], i) => {
+        setTimeout(() => {
+          const bar = document.getElementById("pb" + i);
+          if (bar) bar.style.width = Math.min(pct, 100) + "%";
+        }, i * 70);
+      });
+    });
+
+    document.getElementById("result").style.display = "block";
+    document.getElementById("result").scrollIntoView({ behavior: "smooth", block: "start" });
+
+  } catch(e) {
+    document.getElementById("loader").style.display = "none";
+    btn.disabled = false;
+    btn.innerHTML = "Predict Obesity Level";
+    showError("Could not connect to the server. Make sure the Flask API is running on port 5000.");
+  }
+}
+</script>
+</body>
+</html>
